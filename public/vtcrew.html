@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VT Crew Helpdesk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .warning-yellow { background-color: #ffe20573; border: 2px solid #eab308; }
+        .danger-red { background-color: #fca5a5; border: 2px solid #ef4444; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .day-btn.active { background-color: #3b82f6; color: white; border-color: #2563eb; }
+        .nav-tab.active { color: #3b82f6; border-bottom: 3px solid #3b82f6; }
+        .role-tab.active { background-color: #3b82f6; color: white; }
+    </style>
+</head>
+<body class="bg-slate-600 font-sans pb-24">
+
+   <!-- Header -->
+    <nav class="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <h1 id="rt-date" class="text-lg font-bold leading-none text-blue-400">May 13, 2026</h1>
+                <p id="rt-clock" class="text-xs font-mono mt-1 opacity-80">00:00:00</p>
+            </div>
+            <div class="text-right">
+                <!-- This ID "day-tag" is what the JS will target -->
+                <span id="day-tag" class="text-[10px] bg-blue-900 px-2 py-1 rounded-full uppercase font-bold tracking-widest border border-blue-700">
+                    Loading...
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-md mx-auto p-4">
+        
+        <!-- SECTION: TRACKER -->
+        <div id="view-tracker" class="space-y-6">
+            <section class="bg-white p-4 rounded-2xl shadow-sm border">
+                <div id="day-picker" class="flex justify-between mb-4">
+                    <button onclick="toggleDay(0)" class="day-btn w-9 h-9 rounded-full border text-xs font-bold text-slate-400">S</button>
+                    <button onclick="toggleDay(1)" class="day-btn w-9 h-9 rounded-full border text-xs font-bold text-slate-400">M</button>
+                    <button onclick="toggleDay(2)" class="day-btn w-9 h-9 rounded-full border text-xs font-bold text-slate-400">T</button>
+                    <button onclick="toggleDay(3)" class="day-btn w-9 h-9 rounded-full border text-xs font-bold text-slate-400">W</button>
+                    <button onclick="toggleDay(4)" class="day-btn w-9 h-9 rounded-full border text-xs font-bold text-slate-400">T</button>
+                    <button onclick="toggleDay(5)" class="day-btn w-9 h-9 rounded-full border text-xs font-bold text-slate-400">F</button>
+                    <button onclick="toggleDay(6)" class="day-btn w-9 h-9 rounded-full border text-xs font-bold text-slate-400">S</button>
+                </div>
+                <!-- Updated Button Styling: Normal/Secondary appearance -->
+                <button id="notif-btn" onclick="initNotifications()" class="w-full py-2 bg-white border border-slate-300 text-slate-600 rounded-xl font-bold text-xs uppercase tracking-tighter hover:bg-slate-50">
+                    Enable Shift Notifications
+                </button>
+            </section>
+
+            <section class="flex bg-gray-200 p-1 rounded-xl">
+                <button id="btn-view-current" onclick="setSlotView('current')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white shadow-sm">CURRENT SLOT</button>
+                <button id="btn-view-all" onclick="setSlotView('all')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-gray-500">VIEW ALL</button>
+            </section>
+
+            <section class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                <div id="session-list" class="divide-y divide-slate-100"></div>
+            </section>
+            <!-- WhatsApp Button -->
+            <section id="whatsapp-section" class="hidden mt-6 px-4">
+                <button onclick="generateWhatsApp()" class="w-full py-4 bg-green-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                    <span>📱</span> Generate WhatsApp Message
+                </button>
+            </section>
+        </div>
+
+        <!-- SECTION: TASKS -->
+        <div id="view-tasks" class="hidden space-y-6">
+            <div class="grid grid-cols-2 gap-2 bg-slate-200 p-1 rounded-xl">
+                <button onclick="setRole('counter')" id="role-counter" class="role-tab py-2 rounded-lg text-[10px] font-bold active">COUNTER</button>
+                <button onclick="setRole('Ground')" id="role-Ground" class="role-tab py-2 rounded-lg text-[10px] font-bold text-slate-500">GROUND</button>
+                <button onclick="setRole('PartyIC')" id="role-PartyIC" class="role-tab py-2 rounded-lg text-[10px] font-bold text-slate-500">PARTY IC</button>
+                <button onclick="setRole('Cafe')" id="role-Cafe" class="role-tab py-2 rounded-lg text-[10px] font-bold text-slate-500">CAFE</button>
+            </div>
+            <div id="task-content" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200"></div>
+        </div>
+
+        <!-- SECTION: SOS -->
+        <div id="view-sos" class="hidden space-y-4">
+            <div class="bg-red-50 border-2 border-red-200 p-4 rounded-2xl">
+                <h2 class="text-red-700 font-black text-lg mb-1 italic underline">HELP ME</h2>
+                <p class="text-red-600 text-[11px] font-bold uppercase tracking-tight">FAQ BELOW</p>
+            </div>
+             <div class="grid grid-cols-1 gap-3">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-black text-slate-400 uppercase mb-2">📞 I NEED SEND HELP</p>
+                    <div class="space-y-2">
+                        <a href="tel:00000000" class="flex justify-between items-center p-3 bg-slate-800 text-white rounded-lg font-bold">
+                            <span>Supervisor</span>
+                            <span>CALL</span>
+                        </a>
+                        <a href="tel:00000000" class="flex justify-between items-center p-3 bg-slate-600 text-white rounded-lg font-bold">
+                            <span>Counter Head</span>
+                            <span>CALL</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-3">
+
+                <!-- FAQ ITEM -->
+                <details class="group bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <summary class="flex justify-between items-center cursor-pointer font-bold text-sm text-slate-700">
+                        What are the ticket prices?
+                        <span class="group-open:rotate-180 transition-transform">⌄</span>
+                    </summary>
+                    <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+                        first-timer for 1 adult and 1 child would be $49, a license will be issued at the end of the session.
+                        second-timer onwards for the same 1 adult and 1 child would be $38.
+                        we are hourly sessioned. 
+                    </p>
+                </details>
+
+                <!-- FAQ ITEM -->
+                <details class="group bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <summary class="flex justify-between items-center cursor-pointer font-bold text-sm text-slate-700">
+                        Customer wants extension?
+                        <span class="group-open:rotate-180 transition-transform">⌄</span>
+                    </summary>
+                    <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+                        Inform customer of the extension price ($19) and check slot availability before extending.
+                    </p>
+                </details>
+
+                <!-- FAQ ITEM -->
+                <details class="group bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <summary class="flex justify-between items-center cursor-pointer font-bold text-sm text-slate-700">
+                        Customer wants to add additional adult?
+                        <span class="group-open:rotate-180 transition-transform">⌄</span>
+                    </summary>
+                    <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+                        Inform them that each additional adult will be at $15.
+                    </p>
+                </details>
+
+                <!-- FAQ ITEM -->
+                <details class="group bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <summary class="flex justify-between items-center cursor-pointer font-bold text-sm text-slate-700">
+                        Customer that is not first-timer wants a new license?
+                        <span class="group-open:rotate-180 transition-transform">⌄</span>
+                    </summary>
+                    <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+                        Inform them replacement of license is $10. 
+                    </p>
+                </details>
+
+                <!-- FAQ ITEM -->
+                <details class="group bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <summary class="flex justify-between items-center cursor-pointer font-bold text-sm text-slate-700">
+                        Cannot find customer record in registration form for non first-timer?
+                        <span class="group-open:rotate-180 transition-transform">⌄</span>
+                    </summary>
+                    <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+                        Check thoroughly, like email as cannot find the phone number might due to incomplete 
+                        phone number, if really cant find ask them show prove (pictures of them in vt, email or 
+                        past records).
+                    </p>
+                </details>
+
+                <!-- FAQ ITEM -->
+                <details class="group bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <summary class="flex justify-between items-center cursor-pointer font-bold text-sm text-slate-700">
+                        How to use QuickStats?
+                        <span class="group-open:rotate-180 transition-transform">⌄</span>
+                    </summary>
+                    <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+                        For every 15 or 30min (when no customer), update the quickstats by keying walkin numbers 
+                        for $38 Drivers Pass, voucher, bundle and AP (pls select correct type of ticket).
+                    </p>
+                </details>
+
+                <!-- FAQ ITEM -->
+                <details class="group bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <summary class="flex justify-between items-center cursor-pointer font-bold text-sm text-slate-700">
+                        How to redeem bundle?
+                        <span class="group-open:rotate-180 transition-transform">⌄</span>
+                    </summary>
+                    <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+                        Go to the CRM, type in customer phone number and check if bundle is valid, if yes, click on 'Book'
+                        and fill up the corresponding inputs, then once successful it will auto be in the webba and tabulated 
+                        in the quickstats so do not key into quickstats also (if not double count).
+                    </p>
+                </details>
+
+            </div>
+            <!-- <div class="grid grid-cols-1 gap-3">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-black text-slate-400 uppercase mb-2">📞 I NEED SEND HELP</p>
+                    <div class="space-y-2">
+                        <a href="tel:00000000" class="flex justify-between items-center p-3 bg-slate-800 text-white rounded-lg font-bold">
+                            <span>Supervisor</span>
+                            <span>CALL</span>
+                        </a>
+                        <a href="tel:00000000" class="flex justify-between items-center p-3 bg-slate-600 text-white rounded-lg font-bold">
+                            <span>Counter Head</span>
+                            <span>CALL</span>
+                        </a>
+                    </div>
+                </div>
+            </div> -->
+        </div>
+
+    </main>
+
+    <!-- Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-200 px-4 py-3 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
+        <div class="max-w-md mx-auto flex justify-around">
+            <button onclick="switchTab('tracker')" id="nav-tracker" class="nav-tab active flex flex-col items-center gap-1 min-w-[60px]">
+                <span class="text-xl">📊</span>
+                <span class="text-[10px] font-bold uppercase">Tracker</span>
+            </button>
+            <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-tab flex flex-col items-center gap-1 text-slate-400 min-w-[60px]">
+                <span class="text-xl">✅</span>
+                <span class="text-[10px] font-bold uppercase">Checklists</span>
+            </button>
+            <button onclick="switchTab('sos')" id="nav-sos" class="nav-tab flex flex-col items-center gap-1 text-slate-400 min-w-[60px]">
+                <span class="text-xl text-red-500">🚨</span>
+                <span class="text-[10px] font-bold uppercase text-red-500">SOS</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        let currentView = 'current';
+        let currentRole = 'counter';
+        let scheduledDays = JSON.parse(localStorage.getItem('scheduledDays')) || [];
+        let sessionData = JSON.parse(localStorage.getItem('sessionData')) || {};
+
+        const tasks = {
+            counter: {
+                opening: [
+                    "--- Weekday ---",
+                    "Check Numbers and send", 
+                    "Write 'Available' or 'Close' on the timing board",
+                    "On POS and kiosk (make sure kiosk is working)", 
+                    "setup footstool",
+                    "Take out 10am color tag, foc tag, AP tag and Pink tag",
+                    "Write Party List and prepare cafe vouchers for weekends (fri counter)",
+                    "--- Weekend ---",
+                    "Setup queue poles for customer to queue",
+                    "On POS and kiosk, remove cloth and keep in the drawer for merch", 
+                    "setup footsteps",
+                    "Check Numbers and send", 
+                    "Cafe Vouchers are prepared",
+                    "Write 'Available' or 'Close' on the timing board"
+                ],
+                closing: [
+                    "Send reporting numbers into counter chat", 
+                    "Delete photos if have in all the computers and drive", 
+                    "Keep all queue poles and footsteps",
+                    "Make sure there is enough ballons for next day",
+                    "Cover merch back with the cloth"
+                ]
+            },
+            Ground: {
+                opening: [
+                    "Ensure enough cars at the front", 
+                    "Remember take walkie", 
+                ],
+                closing: [
+                    "--- TRASH & SWEEP ---",
+                    "Empty all bins and change trash bag",
+                    "Sweep the place thoroughly",
+                    "--- BATTERY ---",
+                    "Change all car battery that is 4 bar and below",
+                    "Remember to turn off switch and charge in charging room",
+                    "--- CARWASH ---",
+                    "Wash the soap away ",
+                    "Pick up trash underneath",
+                    "Make sure raincoats are neatly arranged and dry them if needed",
+                    "--- PLAYGROUND ---",
+                    "Pick up the balls using a trash bag and put them back to the ball pit",
+                    "sweep or pickup any trash found",
+                ]
+            },
+            PartyIC: {
+                opening: [
+                    "Check Booking Form (Big/Small Room/Both Rooms)", 
+                    "Check Party List Ready",
+                    "Prepare Utencils and Plates",
+                    "E-Banner put in drive",
+                    "--- PREMIUM ---",
+                    "Goodie Bags Ready",
+                    "Balloon",
+                    "Catering (if have)"
+                ],
+                ToDo:[
+                    "Issue party kids Driving License",
+                    "Assist the host",
+                    "Give voucher if needed"
+                ],
+
+                closing: [
+                    "Settle Payment",
+                    "Clean Party Area",  
+                ]
+            },
+            Cafe: {
+                opening: [
+                    "Grab a walkie",
+                    "Setup the paper cups, replenish straws, sugar, creamer, tissue", 
+                    "Setup Pastries and Fruit Cups in the display fridge", 
+                    "Make sure coffee machine is ready"
+                ],
+                closing: [
+                    "Clean Coffee Machine", 
+                    "Clean the cafe area both inside and outside",
+                    "Arrange tables and chairs neatly", 
+                    "Replenish Gummies for drivethru",
+                    "Check cafe stocks at the end of day"
+                ]
+            }
+        };
+
+        function switchTab(tab) {
+            ['tracker', 'tasks', 'sos'].forEach(v => document.getElementById(`view-${v}`).classList.add('hidden'));
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.classList.remove('active');
+                el.classList.add('text-slate-400');
+            });
+            document.getElementById(`nav-${tab}`).classList.add('active');
+            document.getElementById(`nav-${tab}`).classList.remove('text-slate-400');
+            if(tab === 'tasks') renderTasks();
+        }
+
+        function setRole(role) {
+            currentRole = role;
+            document.querySelectorAll('.role-tab').forEach(btn => {
+                if(btn.id === `role-${role}`) {
+                    btn.classList.add('active');
+                    btn.classList.remove('text-slate-500');
+                } else {
+                    btn.classList.remove('active');
+                    btn.classList.add('text-slate-500');
+                }
+            });
+            renderTasks();
+        }
+
+       
+           function renderTasks() {
+    const container = document.getElementById('task-content');
+    const data = tasks[currentRole];
+    if(!data) return;
+
+    const renderList = (list, title, color) => {
+        if (!list) return ''; // Skip if the list (like ToDo) doesn't exist for this role
+        return `
+            <div class="border-b pb-2 mb-4 mt-6 first:mt-0">
+                <h3 class="${color} font-black text-xs uppercase">${title}: ${currentRole}</h3>
+            </div>
+            ${list.map(t => {
+                if (t.startsWith("---")) {
+                    return `<div class="mt-4 mb-2 py-1 px-3 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 text-center uppercase tracking-widest">${t.replace(/-/g, '')}</div>`;
+                }
+                return `<label class="flex items-center gap-3 p-3 mb-2 bg-slate-50 rounded-lg text-sm font-medium border border-transparent active:border-blue-200 transition-all">
+                            <input type="checkbox" class="w-4 h-4 rounded text-blue-600 focus:ring-0">
+                            ${t}
+                        </label>`;
+            }).join('')}
+        `;
+    };
+
+    // We now explicitly call renderList for Opening, ToDo, and Closing
+    container.innerHTML = `
+        <div class="space-y-2">
+            ${renderList(data.opening, 'Opening', 'text-blue-600')}
+            ${renderList(data.ToDo, 'During Shift', 'text-blue-600')} 
+            ${renderList(data.closing, 'Closing', 'text-blue-600')}
+        </div>
+    `;
+}
+
+        function initNotifications() {
+            if (!("Notification" in window)) {
+                alert("Browser does not support notifications.");
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                const btn = document.getElementById('notif-btn');
+                if (permission === "granted") {
+                    btn.innerText = "✅ Reminders Active";
+                    btn.classList.replace('bg-white', 'bg-green-50');
+                    btn.classList.replace('text-slate-600', 'text-green-700');
+                    btn.classList.replace('border-slate-300', 'border-green-200');
+                    localStorage.setItem('notifsEnabled', 'true');
+                    
+                    // Small test notification
+                    sendShiftNotif("Activated", "You will receive clock-in/out alerts.");
+                }
+            });
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const day = now.getDay(); 
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+            
+            document.getElementById('rt-date').innerText = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('rt-clock').innerText = timeStr;
+
+            // Add this line to update the "ACTIVE" tag to the current day
+            const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+            document.getElementById('day-tag').innerText = dayName;
+            if (Notification.permission === "granted") {
+                // 1. MORNING CLOCK-IN (Daily @ 9:30 AM)
+                if (timeStr === "09:30:00") {
+                    sendShiftNotif("Clock In!", "It's 9:30 AM. Time to start your shift.");
+                }
+
+                // 2. EVENING CLOCK-OUT (Fri & Sat @ 9:30 PM / 21:30)
+                if ((day === 5 || day === 6) && timeStr === "21:30:00") {
+                    sendShiftNotif("Clock Out!", "Shift ending. Time to clock out!");
+                }
+
+                // 3. EVENING CLOCK-OUT (Sun - Thu @ 8:30 PM / 20:30)
+                if ((day >= 0 && day <= 4) && timeStr === "20:30:00") {
+                    sendShiftNotif("Clock Out!", "Shift ending. Time to clock out!");
+                }
+            }
+
+            if (currentView === 'current') renderSlots();
+        }
+
+        function sendShiftNotif(title, message) {
+            new Notification(`VT Crew: ${title}`, {
+                body: message,
+                icon: "https://cdn-icons-png.flaticon.com/512/2972/2972531.png",
+                requireInteraction: true
+            });
+        }
+
+        function initTracker() {
+            const now = new Date();
+            const endHour = (now.getDay() === 5 || now.getDay() === 6) ? 21 : 20;
+            const container = document.getElementById('session-list');
+            container.innerHTML = '';
+
+            for (let h = 10; h <= endHour; h++) {
+                if (!sessionData[h]) sessionData[h] = { walkin: 0, voucher: 0, bundle: 0, ap: 0, online: 0, total: 0 };
+                const timeStr = `${h > 12 ? h - 12 : h}${h >= 12 ? 'pm' : 'am'}`;
+                
+                container.innerHTML += `
+                    <div id="row-${h}" class="session-row p-6 border-b relative">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><span class="text-xl font-black text-slate-800">${timeStr}</span><button onclick="resetSlot(${h})" class="block text-[8px] text-red-500 font-bold uppercase mt-1 opacity-50">Clear</button></div>
+                            <div id="total-${h}" class="text-3xl font-black bg-slate-900 text-white px-4 py-2 rounded-2xl">${sessionData[h].total}</div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${['walkin', 'voucher', 'bundle', 'ap', 'online'].map(type => `
+                                <div class="bg-slate-50 border rounded-xl p-2">
+                                    <div class="flex justify-between text-[9px] font-bold uppercase text-slate-400"><span>${type}</span><span id="val-${h}-${type}">${sessionData[h][type]}</span></div>
+                                    <div class="flex gap-1 mt-1">
+                                        <button onclick="updateVal(${h},'${type}',-1)" class="flex-1 bg-white border rounded py-1 text-red-500">-</button>
+                                        <button onclick="updateVal(${h},'${type}',1)" class="flex-1 bg-white border rounded py-1 text-blue-600">+</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                updateUIStyles(h);
+            }
+            renderSlots();
+        }
+
+        function updateVal(hour, type, delta) {
+            const s = sessionData[hour];
+            if (delta === -1 && s[type] <= 0) return;
+            s[type] += delta;
+            s.total = s.walkin + s.voucher + s.bundle + s.ap + s.online;
+            document.getElementById(`val-${hour}-${type}`).innerText = s[type];
+            document.getElementById(`total-${hour}`).innerText = s.total;
+            updateUIStyles(hour);
+            localStorage.setItem('sessionData', JSON.stringify(sessionData));
+        }
+
+        function updateUIStyles(hour) {
+            const s = sessionData[hour];
+            const row = document.getElementById(`row-${hour}`);
+            if (!row) return;
+            row.classList.remove('warning-yellow', 'danger-red');
+            if (s.total >= 50) row.classList.add('danger-red');
+            else if (s.total >= 40) row.classList.add('warning-yellow');
+        }
+
+        function setSlotView(mode) {
+            currentView = mode;
+            document.getElementById('btn-view-current').className = mode === 'current' ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm' : 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+            document.getElementById('btn-view-all').className = mode === 'all' ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm' : 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+            // Show button only in VIEW ALL
+            const whatsappSection = document.getElementById('whatsapp-section');
+
+            if (mode === 'all') {
+                whatsappSection.classList.remove('hidden');
+            } else {
+                whatsappSection.classList.add('hidden');
+            }
+            renderSlots();
+        }
+
+        function renderSlots() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const day = now.getDay(); // 0=Sun, 5=Fri, 6=Sat
+            
+            // Determine if we are past the half-hour cutoff
+            const isWeekend = (day === 5 || day === 6);
+            const isPastClosing = isWeekend 
+                ? (currentHour > 21 || (currentHour === 21 && currentMinute >= 30)) // 9:30 PM
+                : (currentHour > 20 || (currentHour === 20 && currentMinute >= 30)); // 8:30 PM
+
+            const container = document.getElementById('session-list');
+            let visibleCount = 0;
+
+            // Update visibility of existing rows
+            Object.keys(sessionData).forEach(h => {
+                const row = document.getElementById(`row-${h}`);
+                if (row) {
+                    const isVisible = (currentView === 'all' || parseInt(h) === currentHour);
+                    row.style.display = isVisible ? 'block' : 'none';
+                    if (isVisible) visibleCount++;
+                }
+            });
+
+            // Logic for the "Current Slot" empty state
+            if (currentView === 'current') {
+                if (currentHour < 10) {
+                    container.innerHTML = `
+                        <div id="no-slots-msg" class="p-12 text-center">
+                            <p class="text-blue-500 text-2xl mb-2">☀️</p>
+                            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Too early! Starts at 10am</p>
+                        </div>`;
+                } else if (isPastClosing) {
+                    container.innerHTML = `
+                        <div id="no-slots-msg" class="p-12 text-center">
+                            <p class="text-indigo-500 text-2xl mb-2">😴</p>
+                            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Off Work! See you tomorrow</p>
+                        </div>`;
+                } else if (visibleCount === 0) {
+                    // This handles the gap between the last session (8pm/9pm) and the actual clock-out (8:30/9:30)
+                    container.innerHTML = `
+                        <div id="no-slots-msg" class="p-12 text-center">
+                            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Finalizing last session...</p>
+                        </div>`;
+                }
+            } else if (currentView === 'all' && container.innerHTML.includes("no-slots-msg")) {
+                // Refresh the list if we were just looking at an empty state
+                initTracker();
+            }
+        }
+
+        function toggleDay(i) {
+            const btns = document.querySelectorAll('.day-btn');
+            if (scheduledDays.includes(i)) scheduledDays = scheduledDays.filter(d => d !== i);
+            else scheduledDays.push(i);
+            btns[i].classList.toggle('active');
+            btns[i].classList.toggle('text-slate-400');
+            localStorage.setItem('scheduledDays', JSON.stringify(scheduledDays));
+        }
+
+        function resetSlot(h) {
+            if(confirm('Clear data?')) {
+                sessionData[h] = { walkin: 0, voucher: 0, bundle: 0, ap: 0, online: 0, total: 0 };
+                initTracker();
+                localStorage.setItem('sessionData', JSON.stringify(sessionData));
+            }
+        }
+        function generateWhatsApp() {
+                const now = new Date();
+
+                // Format date
+                const formattedDate = now.toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                const weekday = now.toLocaleDateString('en-US', {
+                    weekday: 'long'
+                }).toLowerCase();
+
+                let message = `* ${formattedDate} * (${weekday})\n\n`;
+
+                // Decide ending hour
+                const endHour = (now.getDay() === 5 || now.getDay() === 6) ? 21 : 20;
+
+                for (let h = 10; h <= endHour; h++) {
+                    const s = sessionData[h] || {
+                        total: 0
+                    };
+
+                    const timeStr = `${h > 12 ? h - 12 : h}${h >= 12 ? 'pm' : 'am'}`;
+
+                    message += `${timeStr} : ${s.total}\n`;
+                }
+
+                const encodedMessage = encodeURIComponent(message);
+
+                window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+        }
+        document.getElementById('credit-name')?.addEventListener('click', () => {
+            alert("VT Crew Helpdesk v1.0\nLast Updated: May 2026\nOptimized for Mobile Crew Use.");
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const btns = document.querySelectorAll('.day-btn');
+            scheduledDays.forEach(day => {
+                btns[day].classList.add('active');
+                btns[day].classList.remove('text-slate-400');
+            });
+            initTracker();
+            setSlotView('current');
+            updateTime();
+            renderTasks();
+            setInterval(updateTime, 1000); // Clock logic starts here
+        });
+    </script>
+</body>
+<!-- Credit Section -->
+<footer class="mt-12 mb-8 text-center border-t border-slate-500/30 pt-6">
+    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Developed By</p>
+    <p class="text-white text-sm font-black italic tracking-wider mt-1">BRIDGET WONG</p>
+    <p class="text-[9px] text-slate-500 mt-2">© 2026 VT Crew Helpdesk | v1.0</p>
+</footer>
+</html>
